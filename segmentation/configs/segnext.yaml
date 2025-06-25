@@ -1,0 +1,7 @@
+model: segnext
+version: segnext-base
+pretrained: true
+num_classes: 21
+epochs: 50
+batch_size: 8
+lr: 0.0001

@@ -16,24 +16,29 @@ The training pipeline uses [Hugging Face Accelerate](https://github.com/huggingf
 Install the required packages:
 
 ```bash
-pip install torch torchvision accelerate tqdm wandb segmentation-models-pytorch timm transformers
+pip install torch torchvision accelerate tqdm wandb segmentation-models-pytorch timm transformers pyyaml
 ```
 
 Additional packages are needed for segNext or PVT models.
+
+## Configuration
+
+Sample configuration files for each model are stored in `segmentation/configs/`.
+Use these as starting points and modify as needed.
 
 ## Training
 
 ```bash
 python -m segmentation.train --data-dir /path/to/VOC2012 \
-    --model unet --epochs 50 --batch-size 8 --wandb
+    --config segmentation/configs/unet.yaml --wandb
 ```
 
-This command trains UNet on the VOC2012 dataset. Replace `unet` with any available model name. When `--wandb` is specified, metrics will be logged to Weights & Biases.
+Each model has a sample YAML configuration under `segmentation/configs/`. These files define the model variant, whether to use pretrained weights and other hyperparameters. Command line arguments override values from the config file.
 
 ## Inference
 
 ```bash
-python -m segmentation.inference --model unet \
+python -m segmentation.inference --config segmentation/configs/unet.yaml \
     --checkpoint checkpoints/model_49.pt \
     --image input.jpg --output pred.png
 ```

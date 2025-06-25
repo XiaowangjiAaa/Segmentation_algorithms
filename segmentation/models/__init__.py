@@ -13,7 +13,7 @@ MODEL_REGISTRY = {
 }
 
 
-def create_model(name: str, num_classes: int) -> Any:
+def create_model(name: str, num_classes: int, *, version: str = "", pretrained: bool = True) -> Any:
     if name not in MODEL_REGISTRY:
         raise ValueError(f"Unknown model name: {name}")
-    return MODEL_REGISTRY[name](num_classes)
+    return MODEL_REGISTRY[name](num_classes, version=version, pretrained=pretrained)
