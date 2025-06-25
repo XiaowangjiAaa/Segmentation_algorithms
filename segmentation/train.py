@@ -11,30 +11,39 @@ from tqdm import tqdm
 from .dataset import get_dataloader
 from .models import create_model
 from .utils import compute_metrics
+from .config import load_config
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train segmentation models")
     parser.add_argument("--data-dir", type=str, required=True, help="VOC2012 root directory")
     parser.add_argument("--model", type=str, default="unet", help="Model name")
+    parser.add_argument("--version", type=str, default="", help="Backbone or model version")
+    parser.add_argument("--pretrained", action="store_true", help="Use pretrained weights")
     parser.add_argument("--num-classes", type=int, default=21, help="Number of classes")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--output", type=Path, default=Path("checkpoints"))
     parser.add_argument("--wandb", action="store_true", help="Enable wandb logging")
+    parser.add_argument("--config", type=str, help="Path to YAML config file")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.config:
+        cfg = load_config(args.config)
+        for k, v in cfg.items():
+            if hasattr(args, k):
+                setattr(args, k, v)
     accelerator = Accelerator()
     if args.wandb and accelerator.is_local_main_process:
         import wandb
 
         wandb.init(project="segmentation", config=vars(args))
 
-    model = create_model(args.model, args.num_classes)
+    model = create_model(args.model, args.num_classes, version=args.version, pretrained=args.pretrained)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
 

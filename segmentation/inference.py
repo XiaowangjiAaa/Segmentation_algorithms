@@ -6,21 +6,30 @@ from PIL import Image
 from torchvision import transforms as T
 
 from .models import create_model
+from .config import load_config
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Inference for segmentation")
     parser.add_argument("--model", type=str, required=True, help="Model name")
+    parser.add_argument("--version", type=str, default="", help="Backbone or model version")
+    parser.add_argument("--pretrained", action="store_true", help="Use pretrained weights")
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--num-classes", type=int, default=21)
     parser.add_argument("--image", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--config", type=str, help="Path to YAML config file")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    model = create_model(args.model, args.num_classes)
+    if args.config:
+        cfg = load_config(args.config)
+        for k, v in cfg.items():
+            if hasattr(args, k):
+                setattr(args, k, v)
+    model = create_model(args.model, args.num_classes, version=args.version, pretrained=args.pretrained)
     state = torch.load(args.checkpoint, map_location="cpu")
     model.load_state_dict(state)
     model.eval()
