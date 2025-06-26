@@ -37,6 +37,9 @@ def main() -> None:
         for k, v in cfg.items():
             if hasattr(args, k):
                 setattr(args, k, v)
+
+    if isinstance(args.output, str):
+        args.output = Path(args.output)
     accelerator = Accelerator()
     if args.wandb and accelerator.is_local_main_process:
         import wandb
