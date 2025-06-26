@@ -5,4 +5,4 @@ num_classes: 21
 epochs: 50
 batch_size: 4
 lr: 0.0001
-output: checkpoints/swin_transformer
+output: training_results/swin_transformer

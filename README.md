@@ -33,6 +33,12 @@ an `output` path specifying where checkpoints for that model will be saved.
 python -m segmentation.train --data-dir /path/to/VOC2012 \
     --config segmentation/configs/unet.yaml --wandb
 ```
+Checkpoints and logs are written to a directory specified by the configuration's
+`output` path. Inside this directory the script creates `train_logs` and
+`checkpoints` subfolders. Metrics for every epoch are appended to
+`train_logs/metrics.csv`, while the best model (by mIoU) is stored as
+`checkpoints/best.pt`. Use `--save-every N` to control how often regular
+checkpoints are written.
 
 Each model has a sample YAML configuration under `segmentation/configs/`. These files define the model variant, whether to use pretrained weights and other hyperparameters. Command line arguments override values from the config file.
 
