@@ -5,10 +5,13 @@ try:
 except ImportError:  # pragma: no cover - placeholder
     pvt = None
 
+from .simple import get_simple_model
+
 
 def get_model(num_classes: int, version: str = "pvt-tiny", pretrained: bool = True) -> Any:
-    """Return PVT segmentation model."""
+    """Return PVT segmentation model or a simple fallback implementation."""
     if pvt is None:
-        raise ImportError("pvt package is required for PVT model")
-    model = pvt.PVTSegmentation(num_classes=num_classes, version=version, pretrained=pretrained)
-    return model
+        return get_simple_model(num_classes)
+    return pvt.PVTSegmentation(
+        num_classes=num_classes, version=version, pretrained=pretrained
+    )

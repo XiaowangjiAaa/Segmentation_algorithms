@@ -29,6 +29,13 @@ def main() -> None:
         for k, v in cfg.items():
             if hasattr(args, k):
                 setattr(args, k, v)
+
+    if isinstance(args.output, str):
+        args.output = Path(args.output)
+    if isinstance(args.checkpoint, str):
+        args.checkpoint = Path(args.checkpoint)
+    if isinstance(args.image, str):
+        args.image = Path(args.image)
     model = create_model(args.model, args.num_classes, version=args.version, pretrained=args.pretrained)
     state = torch.load(args.checkpoint, map_location="cpu")
     model.load_state_dict(state)

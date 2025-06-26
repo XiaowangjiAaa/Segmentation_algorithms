@@ -5,21 +5,21 @@ try:
 except ImportError:  # pragma: no cover - placeholder
     SegformerForSemanticSegmentation = None
 
+from .simple import get_simple_model
+
 
 def get_model(num_classes: int, version: str = "nvidia/segformer-b0-finetuned-ade-512-512", pretrained: bool = True) -> Any:
-    """Return SegFormer model."""
+    """Return SegFormer model or a simple fallback implementation."""
     if SegformerForSemanticSegmentation is None:
-        raise ImportError("transformers>=4.21 is required for SegFormer")
+        return get_simple_model(num_classes)
     if pretrained:
-        model = SegformerForSemanticSegmentation.from_pretrained(
+        return SegformerForSemanticSegmentation.from_pretrained(
             version,
             num_labels=num_classes,
             ignore_mismatched_sizes=True,
         )
-    else:
-        model = SegformerForSemanticSegmentation.from_pretrained(
-            version,
-            num_labels=num_classes,
-            ignore_mismatched_sizes=True,
-        )
-    return model
+    return SegformerForSemanticSegmentation.from_pretrained(
+        version,
+        num_labels=num_classes,
+        ignore_mismatched_sizes=True,
+    )

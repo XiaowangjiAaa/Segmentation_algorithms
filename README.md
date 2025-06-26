@@ -4,10 +4,10 @@ This repository provides a minimal framework to train and evaluate various image
 
 - UNet
 - DeepLabV3+
-- segNext (requires the external `segnext` package)
+- segNext (uses a simple fallback if the `segnext` package is unavailable)
 - Swin Transformer
-- SegFormer
-- PVT (requires the external `pvt` package)
+- SegFormer (falls back to a lightweight implementation when the `transformers` package is missing)
+- PVT (uses a basic model if the `pvt` package is unavailable)
 
 The training pipeline uses [Hugging Face Accelerate](https://github.com/huggingface/accelerate) for easy single or multi-GPU training and [Weights & Biases](https://wandb.ai/) for optional experiment tracking.
 
@@ -24,7 +24,8 @@ Additional packages are needed for segNext or PVT models.
 ## Configuration
 
 Sample configuration files for each model are stored in `segmentation/configs/`.
-Use these as starting points and modify as needed.
+Use these as starting points and modify as needed. Each configuration includes
+an `output` path specifying where checkpoints for that model will be saved.
 
 ## Training
 
