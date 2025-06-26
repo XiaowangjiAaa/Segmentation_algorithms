@@ -24,7 +24,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--output", type=Path, default=Path("checkpoints"))
+    parser.add_argument("--output", type=Path, default=Path("training_results"))
+    parser.add_argument(
+        "--save-every",
+        type=int,
+        default=5,
+        help="Save checkpoint every N epochs",
+    )
     parser.add_argument("--wandb", action="store_true", help="Enable wandb logging")
     parser.add_argument("--config", type=str, help="Path to YAML config file")
     return parser.parse_args()
@@ -40,6 +46,8 @@ def main() -> None:
 
     if isinstance(args.output, str):
         args.output = Path(args.output)
+    checkpoint_dir = args.output / "checkpoints"
+    log_dir = args.output / "train_logs"
     accelerator = Accelerator()
     if args.wandb and accelerator.is_local_main_process:
         import wandb
@@ -57,23 +65,68 @@ def main() -> None:
         model, optimizer, train_loader, val_loader
     )
 
-    args.output.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    import csv
+    import logging
+
+    logging.basicConfig(
+        filename=log_dir / "training.log",
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
+
+    metrics_file = log_dir / "metrics.csv"
+    write_header = not metrics_file.exists()
+
+    best_miou = 0.0
 
     for epoch in range(args.epochs):
         model.train()
-        for imgs, masks in tqdm(train_loader, disable=not accelerator.is_local_main_process):
+        for imgs, masks in tqdm(
+            train_loader, disable=not accelerator.is_local_main_process
+        ):
             optimizer.zero_grad()
             preds = model(imgs)
             loss = criterion(preds, masks.squeeze(1))
             accelerator.backward(loss)
             optimizer.step()
         if accelerator.is_local_main_process:
-            evaluate(model, val_loader, args.num_classes, epoch, args.wandb)
-            save_path = args.output / f"model_{epoch}.pt"
-            torch.save(accelerator.unwrap_model(model).state_dict(), save_path)
+            metrics = evaluate(
+                model, val_loader, args.num_classes, epoch, args.wandb
+            )
+
+            if write_header:
+                with open(metrics_file, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=["epoch", *metrics.keys()])
+                    writer.writeheader()
+                    writer.writerow({"epoch": epoch, **metrics})
+                write_header = False
+            else:
+                with open(metrics_file, "a", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=["epoch", *metrics.keys()])
+                    writer.writerow({"epoch": epoch, **metrics})
+
+            logging.info("Epoch %d: %s", epoch, metrics)
+
+            if metrics["miou"] > best_miou:
+                best_miou = metrics["miou"]
+                best_path = checkpoint_dir / "best.pt"
+                torch.save(
+                    accelerator.unwrap_model(model).state_dict(), best_path
+                )
+
+            if (epoch + 1) % args.save_every == 0 or epoch == args.epochs - 1:
+                save_path = checkpoint_dir / f"model_{epoch}.pt"
+                torch.save(
+                    accelerator.unwrap_model(model).state_dict(), save_path
+                )
 
 
-def evaluate(model: Any, loader: Any, num_classes: int, epoch: int, use_wandb: bool) -> None:
+def evaluate(
+    model: Any, loader: Any, num_classes: int, epoch: int, use_wandb: bool
+) -> dict:
     model.eval()
     metrics = {"miou": 0.0, "accuracy": 0.0, "f1": 0.0}
     count = 0
@@ -91,6 +144,7 @@ def evaluate(model: Any, loader: Any, num_classes: int, epoch: int, use_wandb: b
         import wandb
 
         wandb.log({f"val/{k}": v for k, v in metrics.items()}, step=epoch)
+    return metrics
 
 
 if __name__ == "__main__":

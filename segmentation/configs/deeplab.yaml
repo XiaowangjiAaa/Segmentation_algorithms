@@ -5,4 +5,4 @@ num_classes: 21
 epochs: 50
 batch_size: 8
 lr: 0.001
-output: checkpoints/deeplab
+output: training_results/deeplab
